@@ -274,7 +274,11 @@
 
 
 (define (load-test-file path)
-  (dynamic-require path #f))
+  (let ([eval-ns (make-base-namespace)])
+    (namespace-attach-module (current-namespace)
+                             "harness.rkt"
+                             eval-ns)
+    (eval `(require (file ,path)) eval-ns)))
               
 
 
@@ -292,4 +296,9 @@
 #|
 (map load-test-file (find-test-files))
 (sub-harness-test (first (tests)))
+|#
+
+#|
+(load-test-file "c:\\Users\\cman\\dev\\racket-test-suite\\perf\\test-baseline.rkt")
+(tests)
 |#
