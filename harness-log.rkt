@@ -12,6 +12,8 @@
 
 
 
+
+
 (define (test-log-summary test-log)
   (map (λ (log)
          (append (parse-test-log-name log)

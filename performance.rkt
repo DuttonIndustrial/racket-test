@@ -28,11 +28,12 @@
   (random-integer (expt 2 128)))
 
 
-(define (mark-iteration-start id)
-  (harness-log 'perf-start id))
+(define (mark-iteration-start (id make-iteration-id))
+  (test-log 'perf-start id)
+  id)
 
 (define (mark-iteration-end id)
-  (harness-log 'perf-end id))
+  (test-log 'perf-end id))
 
 
 (define (time-iteration thunk)

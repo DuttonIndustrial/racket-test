@@ -10,7 +10,7 @@
 
 
 (define (stress-desired-run-time time)
-  (harness-log 'desired-runtime time))
+  (test-log 'desired-runtime time))
   
 
 
