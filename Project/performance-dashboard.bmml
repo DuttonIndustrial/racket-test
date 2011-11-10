@@ -1,0 +1,102 @@
+<mockup version="1.0" skin="sketch" measuredW="1622" measuredH="669" mockupW="1562" mockupH="652">
+  <controls>
+    <control controlID="1" controlTypeID="com.balsamiq.mockups::BreadCrumbs" x="60" y="24" w="-1" h="-1" measuredW="285" measuredH="24" zOrder="0" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>automag%2Cokcomps%2C%20openssl%2C%20performance</text>
+      </controlProperties>
+    </control>
+    <control controlID="2" controlTypeID="com.balsamiq.mockups::Link" x="63" y="233" w="-1" h="-1" measuredW="135" measuredH="21" zOrder="1" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Rapid%20Connection%20Test</text>
+      </controlProperties>
+    </control>
+    <control controlID="3" controlTypeID="com.balsamiq.mockups::Link" x="65" y="532" w="-1" h="-1" measuredW="86" measuredH="21" zOrder="2" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Transfer%20Test</text>
+      </controlProperties>
+    </control>
+    <control controlID="23" controlTypeID="__group__" x="266" y="415" w="1241" h="254" measuredW="1241" measuredH="254" zOrder="3" locked="false" isInGroup="-1">
+      <groupChildrenDescriptors>
+        <control controlID="0" controlTypeID="com.balsamiq.mockups::LineChart" x="72" y="0" w="1169" h="175" measuredW="187" measuredH="175" zOrder="0" locked="false" isInGroup="23"/>
+        <control controlID="1" controlTypeID="com.balsamiq.mockups::Label" x="108" y="186" w="58" h="68" measuredW="21" measuredH="58" zOrder="1" locked="false" isInGroup="23">
+          <controlProperties>
+            <text>commit%201</text>
+            <textOrientation>down</textOrientation>
+          </controlProperties>
+        </control>
+        <control controlID="2" controlTypeID="com.balsamiq.mockups::Label" x="0" y="187" w="72" h="21" measuredW="55" measuredH="21" zOrder="2" locked="false" isInGroup="23">
+          <controlProperties>
+            <text>Commit%3A</text>
+          </controlProperties>
+        </control>
+        <control controlID="3" controlTypeID="com.balsamiq.mockups::Label" x="267" y="187" w="61" h="66" measuredW="21" measuredH="61" zOrder="3" locked="false" isInGroup="23">
+          <controlProperties>
+            <text>commit%202</text>
+            <textOrientation>down</textOrientation>
+          </controlProperties>
+        </control>
+        <control controlID="4" controlTypeID="com.balsamiq.mockups::Label" x="509" y="186" w="21" h="67" measuredW="21" measuredH="60" zOrder="4" locked="false" isInGroup="23">
+          <controlProperties>
+            <text>commit%203</text>
+            <textOrientation>down</textOrientation>
+          </controlProperties>
+        </control>
+        <control controlID="5" controlTypeID="com.balsamiq.mockups::Label" x="752" y="186" w="26" h="67" measuredW="21" measuredH="61" zOrder="5" locked="false" isInGroup="23">
+          <controlProperties>
+            <text>commit%204</text>
+            <textOrientation>down</textOrientation>
+          </controlProperties>
+        </control>
+      </groupChildrenDescriptors>
+    </control>
+    <control controlID="25" controlTypeID="com.balsamiq.mockups::StickyNote" x="1294" y="17" w="328" h="282" measuredW="109" measuredH="123" zOrder="5" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>The%20performance%20dashboard%20shows%20rolling%20results%20for%20a%20given%20project.%0A%20%0AFor%20each%20test%2C%20it%20shows%20%20progression%20of%20the%20last%20N%20commits%20by%20default.%20A%20range%20can%20also%20be%20given%2C%20as%20well%20as%20a%20set%20of%20particular%20commits%20or%20even%20branches.%0A%20%0A%20%0AThe%20idea%20here%20is%20to%20give%20an%20idea%20of%20any%20trending%20over%20time.%0A%20%0AThe%20graphs%20shows%20details%20like%20ave%20run%20time%2C%20%20ave%20performance%20mark%20values%2C%20etc....%0A%20%0AThe%20average%20on%20this%20view%20is%20computed%20accross%20all%20platforms%2C%20runs%2C%20etc...</text>
+      </controlProperties>
+    </control>
+    <control controlID="26" controlTypeID="__group__" x="266" y="122" w="1241" h="254" measuredW="1241" measuredH="254" zOrder="4" locked="false" isInGroup="-1">
+      <groupChildrenDescriptors>
+        <control controlID="0" controlTypeID="com.balsamiq.mockups::LineChart" x="72" y="0" w="1169" h="175" measuredW="187" measuredH="175" zOrder="0" locked="false" isInGroup="26"/>
+        <control controlID="1" controlTypeID="com.balsamiq.mockups::Label" x="108" y="186" w="58" h="68" measuredW="21" measuredH="58" zOrder="1" locked="false" isInGroup="26">
+          <controlProperties>
+            <text>commit%201</text>
+            <textOrientation>down</textOrientation>
+          </controlProperties>
+        </control>
+        <control controlID="2" controlTypeID="com.balsamiq.mockups::Label" x="0" y="187" w="72" h="21" measuredW="55" measuredH="21" zOrder="2" locked="false" isInGroup="26">
+          <controlProperties>
+            <text>Commit%3A</text>
+          </controlProperties>
+        </control>
+        <control controlID="3" controlTypeID="com.balsamiq.mockups::Label" x="267" y="187" w="61" h="66" measuredW="21" measuredH="61" zOrder="3" locked="false" isInGroup="26">
+          <controlProperties>
+            <text>commit%202</text>
+            <textOrientation>down</textOrientation>
+          </controlProperties>
+        </control>
+        <control controlID="4" controlTypeID="com.balsamiq.mockups::Label" x="509" y="186" w="21" h="67" measuredW="21" measuredH="60" zOrder="4" locked="false" isInGroup="26">
+          <controlProperties>
+            <text>commit%203</text>
+            <textOrientation>down</textOrientation>
+          </controlProperties>
+        </control>
+        <control controlID="5" controlTypeID="com.balsamiq.mockups::Label" x="752" y="186" w="26" h="67" measuredW="21" measuredH="61" zOrder="5" locked="false" isInGroup="26">
+          <controlProperties>
+            <text>commit%204</text>
+            <textOrientation>down</textOrientation>
+          </controlProperties>
+        </control>
+      </groupChildrenDescriptors>
+    </control>
+    <control controlID="27" controlTypeID="com.balsamiq.mockups::Label" x="188" y="122" w="-1" h="-1" measuredW="139" measuredH="21" zOrder="6" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Ave.%20Connections%20Made</text>
+      </controlProperties>
+    </control>
+    <control controlID="28" controlTypeID="com.balsamiq.mockups::Label" x="187" y="154" w="-1" h="-1" measuredW="90" measuredH="21" zOrder="7" locked="false" isInGroup="-1">
+      <controlProperties>
+        <text>Ave.%20Run%20Time</text>
+      </controlProperties>
+    </control>
+  </controls>
+</mockup>
