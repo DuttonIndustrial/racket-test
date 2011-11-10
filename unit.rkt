@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require (for-syntax racket/base)
+         "registry.rkt"
          "harness.rkt")
 
 (provide define-unit-test

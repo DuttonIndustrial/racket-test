@@ -5,7 +5,7 @@
          racket/path
          racket/cmdline
          racket/port
-         (planet okcomps/racket-test))
+         "../main.rkt")
 
 
 (define (main)
@@ -13,10 +13,12 @@
   
   (define test-files
     (command-line
-     #:program "raco test"
-     #:once-any
-     [("-l") "List tests in execution set"
-                      (set! operation 'list)]
+     #:program "raco-test"
+     #:once-each
+     [("-l" "--list") "List tests in execution set"
+           (set! operation 'list)]
+     [("-o" "--output") "Harness tests in execution set"
+           (set! operation 'harness)]
      #:args filenames
      filenames))
   
@@ -34,9 +36,9 @@
          (let loop ([tests (tests unit-test?)]
                     [fail-count 0])
            (if (empty? tests)
-               (if (equal? fail-count 0)
-                   (exit 0)
-                   (exit 1))
+                 (if (equal? fail-count 0)
+                     (exit 0)
+                     (exit 1))
                (let* ([test (first tests)]
                       [result (harness-test test)])
                  (if (equal? 'ok (result-summary result))
@@ -50,6 +52,8 @@
                        (printf "~n~n")
                        (loop (rest tests)
                              (add1 fail-count)))))))]
+        [(equal? operation 'harness)
+         (output-tests (tests unit-test?))]
         [else
          (error "Don't know what to do")]))
 

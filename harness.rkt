@@ -24,7 +24,8 @@
          (struct-out test)
          (struct-out result)
          result-summary
-         harness-test)
+         harness-test
+         output-tests)
 
 
 ;this file contains primitive accessable to a test
@@ -100,6 +101,10 @@ on all computers|#
 (define current-harness-thread (make-parameter #f))
 
 
+(define (current-test-time)
+  (inexact->exact (round (current-inexact-milliseconds))))
+
+
 
 (define (test-log-raw args)
   (let ([harness-thread (current-harness-thread)])
@@ -112,7 +117,7 @@ on all computers|#
 
 ;logs a message to the test harness
 (define (test-log . args)
-  (test-log-raw (list* (current-inexact-milliseconds) 
+  (test-log-raw (list* (current-test-time) 
                   (current-test-instance-id)
                   (if (string? (first args))
                       (list (apply format args))
@@ -129,10 +134,10 @@ on all computers|#
 
 
 
-;tells the harness to timeout when timeout-at >= (current-inexact-milliseconds)
+;tells the harness to timeout when timeout-at >= (current-test-time)
 (define (test-timeout (timeout #f) #:at (timeout-at #f))
   (test-log 'timeout (if timeout
-                         (+ (current-inexact-milliseconds) timeout)
+                         (+ (current-test-time) timeout)
                          timeout-at)))
 
 
@@ -163,6 +168,22 @@ on all computers|#
                   (reverse log))))))
 
 
+(define (output-tests tests)
+  (parameterize ([current-harness-log-channel (make-async-channel)])
+    (let ([run-thread (thread (λ ()
+                                (for-each harness tests)))])
+      (let loop ([next (sync run-thread (current-harness-log-channel))])
+        (if (equal? next run-thread)
+            (let loop ([next (async-channel-try-get (current-harness-log-channel))])
+              (when next
+                (write next)
+                (newline)
+                (loop (async-channel-try-get (current-harness-log-channel)))))
+            (begin
+              (write next)
+              (newline)
+              (loop (sync run-thread (current-harness-log-channel)))))))))
+
 (define (harness test)
   (parameterize ([current-test-instance-id (make-test-instance-id)]
                  [current-harness-thread (current-thread)])
@@ -186,7 +207,7 @@ on all computers|#
                   [(test-thread) (parameterize ([current-custodian test-custodian]
                                                 [current-output-port test-output-port]
                                                 [uncaught-exception-handler (λ (ex)
-                                                                              (test-abort (exn-message ex))
+                                                                              (test-abort 'error ex)
                                                                               ((error-escape-handler)))])
                                    (thread test))])
       
@@ -223,17 +244,17 @@ on all computers|#
             
             
             ;when the timeout is reach we log the timeout and stop the test
-            [(timeout (and next-timeout (/ (- next-timeout (current-inexact-milliseconds)) 1000)))
+            [(timeout (and next-timeout (/ (- next-timeout (current-test-time)) 1000)))
              (test-log 'timeout-reached)
              (custodian-shutdown-all test-custodian)
              (loop #f gc-interval next-gc)]
             
             ;when a gc interval timeout occurs, we collect garbage and report 
             ;current memory usage
-            [(timeout (and next-gc (/ (- next-gc (current-inexact-milliseconds)) 1000)))
+            [(timeout (and next-gc (/ (- next-gc (current-test-time)) 1000)))
              (collect-garbage)
              (test-log 'gc (current-memory-use memory-limit-custodian))
-             (loop next-timeout gc-interval (+ (current-inexact-milliseconds) gc-interval))]
+             (loop next-timeout gc-interval (+ (current-test-time) gc-interval))]
             
             
             ;when we receive a timeout message from our test thread
@@ -245,7 +266,7 @@ on all computers|#
             
             [(list-rest time id 'gc-interval gc-interval rest)
              (harness-output-message (list* time id 'gc-interval gc-interval rest))
-             (loop next-timeout gc-interval (current-inexact-milliseconds))]
+             (loop next-timeout gc-interval (current-test-time))]
             
             [(list-rest time id 'limit-memory limit rest)
              (harness-output-message (list* time id 'limit-memory limit rest))
