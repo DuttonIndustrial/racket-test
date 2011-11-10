@@ -14,7 +14,7 @@
          default-harness-timeout
          test-log-raw ;log a raw message to the current harness
          test-log     ;log a message to the currently running harness
-         test-error
+         test-abort
          test-limit-memory
          test-timeout
          test-gc-interval
@@ -27,7 +27,7 @@
          result-summary
          register-test
          define-test
-         run-test)
+         harness-test)
 
 
 ;this file contains primitive accessable to a test
@@ -78,7 +78,7 @@ that has one or more define-test like definitions in it|#
                          (let ([test (λ () code ...)])
                            (if (current-harness-thread)
                                (test)
-                               (run-test name))))))
+                               (harness-test name))))))
          (register-test name))]))
 
 
@@ -153,8 +153,8 @@ that has one or more define-test like definitions in it|#
                       args))))
 
 ;instructs the test harness that an error occured
-(define (test-error . args)
-  (apply test-log 'error args))
+(define (test-abort . args)
+  (apply test-log 'abort args))
 
 
 ;tells the harness to limit memory to size bytes
@@ -186,7 +186,7 @@ that has one or more define-test like definitions in it|#
 
 ;runs a single test within a new harness
 ;and returns the test result
-(define (run-test test)
+(define (harness-test test)
   (parameterize ([current-harness-log-channel (make-async-channel)])
     (harness test)
     (result (let loop ([log empty]
@@ -220,7 +220,7 @@ that has one or more define-test like definitions in it|#
                   [(test-thread) (parameterize ([current-custodian test-custodian]
                                                 [current-output-port test-output-port]
                                                 [uncaught-exception-handler (λ (ex)
-                                                                              (test-error (exn-message ex))
+                                                                              (test-abort (exn-message ex))
                                                                               ((error-escape-handler)))])
                                    (thread test))])
       
@@ -287,8 +287,8 @@ that has one or more define-test like definitions in it|#
              (loop next-timeout gc-interval next-gc)]
             
             ;any time an error message is logged we halt the test
-            [(list-rest time id 'error rest)
-             (harness-output-message (list* time id 'error rest))
+            [(list-rest time id 'abort rest)
+             (harness-output-message (list* time id 'abort rest))
              (custodian-shutdown-all test-custodian)
              (loop next-timeout gc-interval next-gc)]
             
