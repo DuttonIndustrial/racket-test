@@ -21,12 +21,9 @@
          current-test-instance-id
          make-test-instance-id
          current-harness-thread
-         tests
          (struct-out test)
          (struct-out result)
          result-summary
-         register-test
-         define-test
          harness-test)
 
 
@@ -49,43 +46,12 @@ on all computers|#
 (define (make-test-instance-id)
   (random-integer (expt 2 128)))
 
-
-#| contains the list of registered tests
-this is built up at compile time
-for each module that is required and
-that has one or more define-test like definitions in it|#
-(define registered-tests empty)
-
-
-;returns the set of tests in the order they were registered
-(define (tests (test-filter (λ (t)
-                         #t)))
-  (reverse (filter test-filter registered-tests)))
-
-;registered a test within the testing system
-(define (register-test test)
-  (set! registered-tests (cons test registered-tests)))
-
-(define-syntax (define-test stx)
-  (syntax-case stx ()
-    [(_ name code ...)
-     #`(begin
-         (define name (test 
-                       'name 
-                       #,(path->string (syntax-source stx) )
-                       #,(syntax-line stx) 
-                       (λ ()
-                         (let ([test (λ () code ...)])
-                           (if (current-harness-thread)
-                               (test)
-                               (harness-test name))))))
-         (register-test name))]))
-
-
-
-
 (struct test (name source line thunk)
-  #:property prop:procedure (struct-field-index thunk)
+  #:property prop:procedure (λ (test)
+                              (if (current-harness-thread)
+                                  ((test-thunk test))
+                                  (harness-test test)))
+                                
   #:property prop:custom-write (λ (test port mode)
                                  ((if mode
                                      write
@@ -320,3 +286,37 @@ that has one or more define-test like definitions in it|#
              (harness-output-message (receive))
              (loop))))))))
 
+
+
+
+#|
+racket-test ..\racket-test-suite
+
+racket-test c:\Users\cman\dev\openssl
+
+racket-test show c:\Users\cman\dev\racket-test-suite\openssl\test-openssl.rkt
+
+|#
+#|
+;runs a harness in a subprocess
+;and executes the given test
+(define (sub-harness-test test)
+
+  (define-values (sub stdout stdin stderr) (subprocess #f #f #f (find-system-path 'exec-file) "-t" "harness.rkt" "-m" (string->path (test-source test)) (symbol->string (test-name test))))
+  
+  (define out-pump (thread (λ ()
+                             (copy-port stdout (current-output-port)))))
+  
+  (define err-pump (thread (λ ()
+                             (copy-port stderr (current-output-port)))))
+
+  (sync sub)
+  (sync (thread-dead-evt out-pump))
+  
+  (unless (equal? (subprocess-status sub) 0)
+    (error 'racket-startup "exited with code ~v" (subprocess-status sub)))
+     
+  (close-input-port stdout)
+  (close-output-port stdin)
+  (close-input-port stderr))
+|#

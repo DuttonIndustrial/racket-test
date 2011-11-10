@@ -59,11 +59,7 @@
                        'name 
                        #,(path->string (syntax-source stx) )
                        #,(syntax-line stx) 
-                       (λ ()
-                         (let ([test (λ () code ...)])
-                           (if (current-log-thread)
-                               (test)
-                               (test-harness name))))))
+                       (λ () code ...)))
          (register-test name))]))
 
 

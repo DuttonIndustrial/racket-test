@@ -31,6 +31,5 @@
                        'name 
                        #,(path->string (syntax-source stx) )
                        #,(syntax-line stx) 
-                       (λ () 
-                         code ...)))
+                       (λ () code ...)))
          (register-test name))]))
