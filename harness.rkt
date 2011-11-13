@@ -2,6 +2,7 @@
 
 (require (for-syntax racket/base)
          racket/async-channel
+         racket/function
          racket/list
          racket/match
          srfi/27
@@ -10,7 +11,6 @@
 
 
 (provide harness
-         current-harness-log-channel
          default-harness-timeout
          test-log-raw ;log a raw message to the current harness
          test-log     ;log a message to the currently running harness
@@ -51,7 +51,7 @@ on all computers|#
   #:property prop:procedure (λ (test)
                               (if (current-harness-thread)
                                   ((test-thunk test))
-                                  (harness-test test)))
+                                  (display-test test)))
                                 
   #:property prop:custom-write (λ (test port mode)
                                  ((if mode
@@ -88,7 +88,7 @@ on all computers|#
           [else
            (error 'bad-log)]))))
 
-(struct result (log)
+(struct result (test log)
   #:property prop:custom-write (λ (result port mode)
                                  ((if mode
                                       write
@@ -141,50 +141,40 @@ on all computers|#
                          timeout-at)))
 
 
-
 ;tells the harness to collect garbage at gc-interval milliseconds
 (define (test-gc-interval gc-interval)
   (test-log 'gc-interval gc-interval))
 
-(define default-harness-timeout (make-parameter 30000))
+(define default-harness-timeout (make-parameter 5000))
 
-(define current-harness-log-channel (make-parameter #f))
-
-
-(define (harness-output-message msg)
-  (async-channel-put (current-harness-log-channel) msg))
-  
 
 ;runs a single test within a new harness
 ;and returns the test result
-(define (harness-test test)
-  (parameterize ([current-harness-log-channel (make-async-channel)])
-    (harness test)
-    (result (let loop ([log empty]
-                       [next (async-channel-try-get (current-harness-log-channel))])
+
+(define (display-test test)
+  (harness-test test #:per-msg (λ (msg)
+                                 (display (drop msg 2))
+                                 (newline))))
+
+(define (harness-test test #:per-msg (per-msg (λ () (void))))
+  (let* ([output-channel (make-async-channel)]
+         [output (λ (msg)
+                   (async-channel-put output-channel msg)
+                   (per-msg msg))])
+    (harness test #:output output)
+    (result test
+            (let loop ([log empty]
+                       [next (async-channel-try-get output-channel)])
               (if next
                   (loop (cons next log)
-                        (async-channel-try-get (current-harness-log-channel)))
+                        (async-channel-try-get output-channel))
                   (reverse log))))))
 
 
 (define (output-tests tests)
-  (parameterize ([current-harness-log-channel (make-async-channel)])
-    (let ([run-thread (thread (λ ()
-                                (for-each harness tests)))])
-      (let loop ([next (sync run-thread (current-harness-log-channel))])
-        (if (equal? next run-thread)
-            (let loop ([next (async-channel-try-get (current-harness-log-channel))])
-              (when next
-                (write next)
-                (newline)
-                (loop (async-channel-try-get (current-harness-log-channel)))))
-            (begin
-              (write next)
-              (newline)
-              (loop (sync run-thread (current-harness-log-channel)))))))))
+  (for-each harness tests))
 
-(define (harness test)
+(define (harness test #:output (harness-output-message write))
   (parameterize ([current-test-instance-id (make-test-instance-id)]
                  [current-harness-thread (current-thread)])
     

@@ -5,7 +5,8 @@
          racket/list
          racket/match
          srfi/27
-         "harness.rkt")
+         "harness.rkt"
+         "registry.rkt")
 
 (provide define-performance-test
          make-iteration-id
