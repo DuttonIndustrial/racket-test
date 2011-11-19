@@ -25,6 +25,7 @@
          (struct-out result)
          result-summary
          harness-test
+         display-test
          output-tests)
 
 
@@ -296,38 +297,3 @@ on all computers|#
            (when (sync/timeout 0 (thread-receive-evt))
              (harness-output-message (receive))
              (loop))))))))
-
-
-
-
-#|
-racket-test ..\racket-test-suite
-
-racket-test c:\Users\cman\dev\openssl
-
-racket-test show c:\Users\cman\dev\racket-test-suite\openssl\test-openssl.rkt
-
-|#
-#|
-;runs a harness in a subprocess
-;and executes the given test
-(define (sub-harness-test test)
-
-  (define-values (sub stdout stdin stderr) (subprocess #f #f #f (find-system-path 'exec-file) "-t" "harness.rkt" "-m" (string->path (test-source test)) (symbol->string (test-name test))))
-  
-  (define out-pump (thread (λ ()
-                             (copy-port stdout (current-output-port)))))
-  
-  (define err-pump (thread (λ ()
-                             (copy-port stderr (current-output-port)))))
-
-  (sync sub)
-  (sync (thread-dead-evt out-pump))
-  
-  (unless (equal? (subprocess-status sub) 0)
-    (error 'racket-startup "exited with code ~v" (subprocess-status sub)))
-     
-  (close-input-port stdout)
-  (close-output-port stdin)
-  (close-input-port stderr))
-|#
