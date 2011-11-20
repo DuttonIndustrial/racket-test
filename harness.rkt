@@ -34,6 +34,11 @@
 ;and ultimatly the outside world 
 
 
+(struct gc-info (major? pre-amount pre-admin-amount code-amount
+                        post-amount post-admin-amount
+                        start-process-time end-process-time
+                        start-time end-time)
+  #:prefab)
 
 
 
@@ -180,7 +185,8 @@ on all computers|#
                  [current-harness-thread (current-thread)])
     
     (test-log 'test (test-name test) (test-source test) (test-line test))
-    (let*-values ([(test-output test-output-port) (make-pipe)] ;captures output from the testing thread
+    (let*-values ([(gc-log-listener) (make-log-receiver (current-logger) 'debug)]
+                  [(test-output test-output-port) (make-pipe)] ;captures output from the testing thread
                   [(output-buffer) (make-bytes 1024)]
                   
                   ;this custodian is used as part of memory tracking and limiting
@@ -240,12 +246,22 @@ on all computers|#
              (custodian-shutdown-all test-custodian)
              (loop #f gc-interval next-gc)]
             
-            ;when a gc interval timeout occurs, we collect garbage and report 
-            ;current memory usage
+            ;when a gc interval timeout occurs, we force garbage collection
+            ;this is because the memory usage statistics are only updated when a major gc occurs
             [(timeout (and next-gc (/ (- next-gc (current-test-time)) 1000)))
              (collect-garbage)
-             (test-log 'gc (current-memory-use memory-limit-custodian))
              (loop next-timeout gc-interval (+ (current-test-time) gc-interval))]
+            
+            ;when a gc event occurs, we report on gc statistics
+            [(event gc-log-listener msg)
+             (loop next-timeout
+                   gc-interval
+                   (if (match msg
+                         [(vector level str (gc-info major? pre-amount pre-admin-amount code-amount post-amount post-admin-amount start-process-time end-process-time start-time end-time))
+                          (test-log 'gc (current-memory-use memory-limit-custodian) major? start-time end-time)
+                          major?])
+                       (+ (current-test-time) gc-interval) ;if a major gc occured, we can reset on our gc-interval so we don't force again
+                       gc-interval))]
             
             
             ;when we receive a timeout message from our test thread
