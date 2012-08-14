@@ -3,12 +3,33 @@
 (require racket/list
          racket/file
          racket/path
-         "harness.rkt")
+         "harness.rkt"
+         "test-api.rkt")
 
 (provide register-test
+         register-test-type
+         test-types
          tests
          load-test-file
-         find-test-files)
+         test-type-name
+         test-type-description
+         test-type-filter
+         find-test-files
+         get-test-type)
+
+
+(define registered-test-types empty)
+
+
+(struct test-type (name description filter) #:transparent)
+
+
+(define (register-test-type name description filter)
+  (set! registered-test-types (cons (test-type name description filter) registered-test-types)))
+
+(define (test-types)
+  registered-test-types)
+
 
 #| contains the list of registered tests
 this is built up at compile time
@@ -18,8 +39,7 @@ that has one or more define-test like definitions in it|#
 
 
 ;returns the set of tests in the order they were registered
-(define (tests (test-filter (λ (t)
-                         #t)))
+(define (tests (test-filter (λ (t) #t)))
   (reverse (filter test-filter registered-tests)))
 
 ;registered a test within the testing system
@@ -40,10 +60,19 @@ that has one or more define-test like definitions in it|#
 
 (define (find-test-files (path (current-directory)))
   (fold-files (λ (path type results)
-                (if (and (equal? type 'file) (regexp-match #px"^test-.+[.]rkt" (path->string (file-name-from-path path))))
-                    (cons (path->string path) results)
+                (if (and (equal? type 'file) (regexp-match #px"^test.*[.]rkt" (path->string (file-name-from-path path))))
+                    (begin
+                      (log-debug (format "found test file ~v" (path->string path)))
+                      (cons (path->string path) results))
                     results))
               empty
               path))
+
+
+(define (get-test-type type-name)
+  (or (findf (λ (type)
+               (equal? (test-type-name type) type-name))
+             (test-types))  
+      (error 'unknown-test-type "Given test type name ~v unknown." type-name)))
 
 

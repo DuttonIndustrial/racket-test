@@ -1,42 +1,46 @@
 #lang racket
 
 
-(require "harness.rkt"
-         "harness-log.rkt")
+(require "main.rkt")
 
 
-(define-test gc-interval-test
-  (harness-gc-interval 500)
-  (sleep 1))
+(define-unit-test gc-interval-test
+  (test-gc-interval 1000)
+  (printf "hello~n")
+  (sleep 10)
+  (test-ok))
 
 
-(define-test timeout-test
-  (harness-timeout 250)
+(define-unit-test timeout-test
+  (test-timeout 250)
   (sleep 10))
 
-(define-test memory-limit-test
-  (harness-gc-interval 1000)
-  (harness-limit-memory 100000000)
+(define-unit-test memory-limit-test
+  (test-limit-memory 100000)
   (let loop ([lst empty])
     (loop (cons "lots of memory" lst))))
 
-(define-test custodian-shutdown-test
+(define-unit-test custodian-shutdown-test
   (custodian-shutdown-all (current-custodian)))
 
-(define-test kill-current-thread-test
+(define-unit-test kill-current-thread-test
   (kill-thread (current-thread)))
 
 
-(define-test error-test
-  (harness-error "oops an error occurred"))
+(define-unit-test error-test
+  (test-abort "oops an error occurred"))
 
-(define-test exception-test
+(define-unit-test exception-test
   (error 'oops "uh oh an exception happend"))
 
+(define-unit-test absolute-timeout-test
+  (test-timeout 100000)
+  (sleep 100000))
 
-(define log (with-input-from-string
-             (with-output-to-string
-              (λ () (harness-run-tests)))
-             port->list))
+(define-unit-test ok-test
+  (test-ok "yay its all ok" 'ummm-kkkaaaayyy))
 
-(test-log-summary log)
+(ok-test)
+
+
+

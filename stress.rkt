@@ -2,6 +2,7 @@
 
 
 (require (for-syntax racket/base)
+         "test-api.rkt"
          "registry.rkt"
          "harness.rkt")
 
@@ -15,6 +16,8 @@
   (test-log 'desired-runtime time))
   
 (struct stress-test test ())
+
+(register-test-type 'stress "A stress test usually attempts to measure performance under load. Typically the test is considered pass if it runs longer than a specified duration of time." stress-test?)
  
 #|
 #:property prop:custom-write (λ (test port mode)

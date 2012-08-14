@@ -6,13 +6,15 @@
          racket/match
          srfi/27
          "harness.rkt"
+         "test-api.rkt"
          "registry.rkt")
 
 (provide define-performance-test
          make-iteration-id
          mark-iteration-start
          mark-iteration-end
-         (struct-out perf-test)
+         define-performance-test
+         perf-test?
          time-iteration
          time-iterations
          parse-iterations)
@@ -24,6 +26,10 @@
                                       write
                                       display)
                                   (format "Perf: ~a @ ~a line ~a" (test-name test) (test-source test) (test-line test)) port)))
+
+
+(register-test-type 'perf "A performance test typically measures a run-time or iteration times of a piece of code. Typically considered a success if it meets a specific run time goal." perf-test?)
+
 
 (define (make-iteration-id)
   (random-integer (expt 2 128)))
