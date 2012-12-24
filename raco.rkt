@@ -37,6 +37,8 @@
      #:args filenames
      filenames))
   
+  (printf "operation :~v~n" operation)
+  
   ;default to unit tests if not test types were specified
   (when (empty? list-filters)
     (set! list-filters (list unit-test?)))
@@ -68,7 +70,9 @@
                        (printf "~n~n")
                        (loop (rest tests)
                              (add1 fail-count)))))))]
+        
         [(equal? operation 'harness)
+         (printf "harnessing tests~n")
          (for-each (λ (t)
                      (harness t))
                    (filter-tests list-filters))]

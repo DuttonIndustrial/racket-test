@@ -13,7 +13,3 @@
     (loop (cons (random 100000) lst))))
   
   
-
-(stress-exceed-memory)
-  
-  

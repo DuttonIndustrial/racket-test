@@ -1,19 +1,17 @@
 #lang racket
 
 
-(require "main.rkt")
+(require (planet okcomps/racket-test))
 
 
 (define-unit-test gc-interval-test
   (test-gc-interval 1000)
   (printf "hello~n")
-  (sleep 10)
-  (test-ok))
+  (sleep 10))
 
 
 (define-unit-test timeout-test
-  (test-timeout 250)
-  (sleep 10))
+  (test-timeout 250))
 
 (define-unit-test memory-limit-test
   (test-limit-memory 100000)
@@ -27,20 +25,19 @@
   (kill-thread (current-thread)))
 
 
-(define-unit-test error-test
-  (test-abort "oops an error occurred"))
+(define-unit-test abort-test
+  (test-abort "abort occurred"))
 
 (define-unit-test exception-test
   (error 'oops "uh oh an exception happend"))
 
 (define-unit-test absolute-timeout-test
-  (test-timeout 100000)
+  (test-timeout 1000)
   (sleep 100000))
 
 (define-unit-test ok-test
-  (test-ok "yay its all ok" 'ummm-kkkaaaayyy))
+  (test-log "yay its all ok ~a" 'ummm-kkkaaaayyy))
 
-(ok-test)
 
 
 

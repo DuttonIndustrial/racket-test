@@ -23,5 +23,6 @@
                        #,(path->string (syntax-source stx) )
                        #,(syntax-line stx) 
                        (λ ()
-                         code ...)))
+                         code ...
+                         (test-ok))))
          (register-test name))]))

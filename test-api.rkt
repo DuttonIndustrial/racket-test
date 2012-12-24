@@ -4,20 +4,15 @@
          racket/match)
 
 
-(provide test-log     ;log a message to the currently running harness
-         test-ok
-         test-abort
-         test-limit-memory
-         test-timeout
-         test-gc-interval
+(provide test-ok      ;logs a test completed ok message
+         test-log     ;log a message to the currently running harness
+         test-abort   ;aborts a test and halts test execution
+         test-limit-memory ;sets a memory limit on the test
+         test-timeout ;causes a test to timeout in a given amount of time
+         test-gc-interval 
          current-test-time
          current-test-start-time
          current-test-instance-id)
-
-
-
-
-
 
 
 (define current-test-instance-id (make-parameter 0))
@@ -39,14 +34,13 @@
   (newline)
   (flush-output))
 
+(define (test-ok . args)
+  (apply test-log 'ok args))
+
 
 ;instructs the test harness that an error occured
 (define (test-abort . args)
   (apply test-log 'abort args))
-
-;instructes test harness that everything completed successfully
-(define (test-ok . args)
-  (apply test-log 'ok args))
 
 
 ;tells the harness to limit memory to size bytes

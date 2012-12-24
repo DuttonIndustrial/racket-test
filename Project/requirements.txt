@@ -1,0 +1,12 @@
+Requirements:
+
+racket-test runs unit tests by default. It searches for all tests in the current directory and all subdirectories. It does this by searching for .rkt files with the word test in the filename
+
+For a default run, racket-test runs silently and executes all unit tests. If success, it is silent. If it fails it outputs the logs of the tests that failed. It returns a 0 for success and a 1 for failure.
+
+racket-test can also be directed to run performance tests, and stress tests, and specific tests within a set of tests.
+
+racket-test can output results to a log file if directed
+
+racket-test can list all tests within a given directory
+

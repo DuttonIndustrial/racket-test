@@ -13,7 +13,6 @@
          make-iteration-id
          mark-iteration-start
          mark-iteration-end
-         define-performance-test
          perf-test?
          time-iteration
          time-iterations

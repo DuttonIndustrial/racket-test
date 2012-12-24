@@ -19,6 +19,7 @@
          (struct-out result-summary))
 
 
+
 #| make sure that all new test instance id's are completely new
 if we did not do this. random-integer would return the same sequence
 every time we run the code|#
@@ -92,17 +93,18 @@ on all computers|#
  ;code that delineats harness commands
  (define (parse-harness-commands output-channel)
    (define x (read-line))
-   (log-debug (format "parser: processing ~v" x))
+   ;(log-debug (format "parser: processing ~v" x))
    (match (with-input-from-string x read)
      [(and (list-rest 'test code rest) v)
-      (log-debug (format "parser: code is ~v" code))
+      ;(log-debug (format "parser: code is ~v" code))
       (async-channel-put output-channel v)
       (let ([exp (regexp-quote (format "(~a" code))])
         (let loop ([next-line (read-line)])
           (cond [(equal? eof next-line)
-                 (log-debug "parser: exiting")]
+                 ;(log-debug "parser: exiting")
+                 (void)]
                 [(regexp-match? exp next-line)
-                 (log-debug (format "parser: matched ~v" next-line))
+                 ;(log-debug (format "parser: matched ~v" next-line))
                  (async-channel-put output-channel (with-input-from-string next-line read))
                  (loop (read-line))]
                 [else
