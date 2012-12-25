@@ -46,7 +46,7 @@ on all computers|#
                                   (format "~a @ ~a line ~a" (test-name test) (test-source test) (test-line test)) port)))
 
 
-(struct result-summary (test-info test-id start-time end-time result result-reason)
+(struct result-summary (test-info test-id start-time end-time result reason)
   #:transparent)
   
 
@@ -285,7 +285,7 @@ on all computers|#
      (let loop ([next (read-line)]
                 [end-time #f]
                 [summary 'no-result]
-                [result-info (list "test did not log result")])
+                [result-info ""])
        (log-debug (format "result parser: processing ~v" next))
        (match (if (eof-object? next)
                   (error 'unexpected-oef "reached eof before test log end marker")
@@ -295,22 +295,19 @@ on all computers|#
           (result-summary test-info test-id start-time end-time summary result-info)]
          
          [(list-rest `,test-id time 'abort rest)
-          (loop (read-line) end-time 'abort rest)]
+          (loop (read-line) end-time (if (equal? summary 'no-result) 'abort summary) rest)]
          
          [(list-rest `,test-id time 'error rest)
-          (loop (read-line) end-time 'error rest )]
-         
-         [(list-rest `,test-id time 'abort rest)
-          (loop (read-line) end-time 'abort rest)]
+          (loop (read-line) end-time (if (equal? summary 'no-result) 'error summary) rest )]
          
          [(list-rest `,test-id time 'timeout-reached rest)
-          (loop (read-line) end-time 'timeout-reached rest)]
+          (loop (read-line) end-time (if (equal? summary 'no-result) 'timeout-reached summary) rest)]
          
          [(list-rest `,test-id time 'memory-limit-reached rest)
-          (loop (read-line) end-time 'memory-limit-reached rest)]
+          (loop (read-line) end-time (if (equal? summary 'no-result) 'memory-limit-reached summary) rest)]
          
          [(list-rest `,test-id time 'ok rest)
-          (loop (read-line) end-time 'ok rest)]
+          (loop (read-line) end-time (if (equal? summary 'no-result) 'ok summary) rest)]
          
          [else
           (log-debug (format "result parser: skipped ~a" next))
@@ -322,15 +319,21 @@ on all computers|#
 
 (define (test->result-summary test)
   (let-values ([(input-from-harness harness-output) (make-pipe)]
+               [(output-i output-o) (make-pipe)]
                [(result-i result-o) (make-pipe)])
     
     (parameterize ([current-output-port harness-output])
-      (thread (λ () (harness test))))
+      (thread (λ () 
+                (harness test)
+                (close-output-port (current-output-port)))))
     
-    (thread (λ () (copy-port input-from-harness (current-output-port) result-o)))
+    (thread (λ () (copy-port input-from-harness output-o result-o)
+              (close-output-port result-o)
+              (close-output-port output-o)))
                          
     (parameterize ([current-input-port result-i])
-      (parse-test-log))))
+      (values (parse-test-log) output-i))))
+         
   
          
                  
