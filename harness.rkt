@@ -52,7 +52,9 @@ on all computers|#
 
 
 (struct result (test id start-time end-time summary reason log-bytes)
-  #:transparent)
+  #:property prop:custom-write (λ (result port mode)
+                                 ((if mode write display)
+                                  (format "Result ~x for test ~a: ~a" (result-id result) (result-test result) (result-summary result)) port)))
 
   
 (define (result-log-port result)
