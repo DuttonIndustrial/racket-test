@@ -61,14 +61,15 @@
                  (if (equal? fail-count 0)
                      (exit 0)
                      (exit 1))
-               (let*-values ([(test) (first tests)]
-                             [(result test-log-i) (test->result-summary test)])
-                 (if (equal? 'ok (result-summary-result result))
+               (let* ([test (first tests)]
+                      [result (test->result test)])
+                 (if (equal? 'ok (result-summary result))
                      (loop (rest tests) fail-count)
                      (begin
-                       (printf "~a in ~a~n~n" (result-summary-result result) test)
-                       (copy-port test-log-i (current-output-port))
-                       (printf "~a in ~a~n~n" (result-summary-result result) test)
+                       (printf "~a in ~a~n~n" (result-summary result) test)
+                       (copy-port result-log (current-output-port))
+                       (close-output-port resuly-log)
+                       (printf "~a in ~a~n~n" (result-summary result) test)
                        (printf "~n~n")
                        (loop (rest tests)
                              (add1 fail-count)))))))]

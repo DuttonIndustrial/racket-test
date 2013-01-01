@@ -14,9 +14,14 @@
          default-harness-timeout
          absolute-harness-timeout
          parse-test-log
-         test->result-summary
+         test->result
          (struct-out test)
-         (struct-out result-summary))
+         result-id
+         result-start-time
+         result-end-time
+         result-summary
+         result-reason
+         (rename-out (result-log-port result-log)))
 
 
 
@@ -37,7 +42,7 @@ on all computers|#
 
 (struct test (name source line thunk)
   #:property prop:procedure (λ (test)
-                              (result-summary-result (test->result-summary test)))
+                              (test->result test))
                                 
   #:property prop:custom-write (λ (test port mode)
                                  ((if mode
@@ -46,9 +51,13 @@ on all computers|#
                                   (format "~a @ ~a line ~a" (test-name test) (test-source test) (test-line test)) port)))
 
 
-(struct result-summary (test-info test-id start-time end-time result reason)
+(struct result (test id start-time end-time summary reason log-bytes)
   #:transparent)
+
   
+(define (result-log-port result)
+  (open-input-bytes (result-log-bytes result)))
+
 
 
 ;absolute harness timeout is the number of seconds after which the harness will timeout
@@ -249,8 +258,7 @@ on all computers|#
                               (loop next-timeout gc-interval next-gc)]
                              
                              [else
-                              (write-string else)
-                              (newline)
+                              (harness-log else)
                               (loop next-timeout gc-interval next-gc)])))))]
          
          [else
@@ -279,47 +287,66 @@ on all computers|#
 
 
 (define (parse-test-log (input (current-input-port)))
-  (match (with-input-from-string (read-line) read)
-    [(list-rest test-id start-time 'start test-info)
-     (log-debug (format "result parser: test-id is ~v - test-info is ~v" test-id test-info))
-     (let loop ([next (read-line)]
-                [end-time #f]
-                [summary 'no-result]
-                [result-info ""])
-       (log-debug (format "result parser: processing ~v" next))
-       (match (if (eof-object? next)
-                  (error 'unexpected-oef "reached eof before test log end marker")
-                  (with-input-from-string next read))
-         
-         [(list-rest `,test-id end-time 'end rest)
-          (result-summary test-info test-id start-time end-time summary result-info)]
-         
-         [(list-rest `,test-id time 'abort rest)
-          (loop (read-line) end-time (if (equal? summary 'no-result) 'abort summary) rest)]
-         
-         [(list-rest `,test-id time 'error rest)
-          (loop (read-line) end-time (if (equal? summary 'no-result) 'error summary) rest )]
-         
-         [(list-rest `,test-id time 'timeout-reached rest)
-          (loop (read-line) end-time (if (equal? summary 'no-result) 'timeout-reached summary) rest)]
-         
-         [(list-rest `,test-id time 'memory-limit-reached rest)
-          (loop (read-line) end-time (if (equal? summary 'no-result) 'memory-limit-reached summary) rest)]
-         
-         [(list-rest `,test-id time 'ok rest)
-          (loop (read-line) end-time (if (equal? summary 'no-result) 'ok summary) rest)]
-         
-         [else
-          (log-debug (format "result parser: skipped ~a" next))
-          (loop (read-line) end-time summary result-info)]))]
-    [else
-     (error 'expected-test-start "expected a test start message. started with ~v" else)]))
+  (let-values ([(log-pipe-in log-pipe-out) (make-pipe)])
+             (match (with-input-from-string (read-line) read)
+               [(and (list-rest test-id start-time 'start test-info) start-msg)
+                (log-debug (format "result parser: test-id is ~v - test-info is ~v" test-id test-info))
+                (write start-msg log-pipe-out)
+                (newline log-pipe-out)
+                (let loop ([next (read-line)]
+                           [end-time #f]
+                           [summary 'no-result]
+                           [result-info ""])
+                  (log-debug (format "result parser: processing ~v" next))
+                  (match (if (eof-object? next)
+                             (error 'unexpected-oef "reached eof before test log end marker")
+                             (with-input-from-string next read))
+                    
+                    [(and (list-rest `,test-id end-time 'end rest) msg)
+                     (write msg log-pipe-out)
+                     (newline log-pipe-out)
+                     (close-output-port log-pipe-out)
+                     (let ([log-bytes (port->bytes log-pipe-in)])
+                       (close-input-port log-pipe-in)
+                       (result test-info test-id start-time end-time summary result-info log-bytes))]
+                    
+                    [(and (list-rest `,test-id time 'abort rest) msg)
+                     (write msg log-pipe-out)
+                     (newline log-pipe-out)
+                     (loop (read-line) end-time (if (equal? summary 'no-result) 'abort summary) rest)]
+                    
+                    [(and (list-rest `,test-id time 'error rest) msg)
+                     (write msg log-pipe-out)
+                     (newline log-pipe-out)
+                     (loop (read-line) end-time (if (equal? summary 'no-result) 'error summary) rest )]
+                    
+                    [(and (list-rest `,test-id time 'timeout-reached rest) msg)
+                     (write msg log-pipe-out)
+                     (newline log-pipe-out)
+                     (loop (read-line) end-time (if (equal? summary 'no-result) 'timeout-reached summary) rest)]
+                    
+                    [(and (list-rest `,test-id time 'memory-limit-reached rest) msg)
+                     (write msg log-pipe-out)
+                     (newline log-pipe-out)
+                     (loop (read-line) end-time (if (equal? summary 'no-result) 'memory-limit-reached summary) rest)]
+                    
+                    [(and (list-rest `,test-id time 'ok rest) msg)
+                     (write msg log-pipe-out)
+                     (newline log-pipe-out)
+                     (loop (read-line) end-time (if (equal? summary 'no-result) 'ok summary) rest)]
+                    
+                    [else
+                     (log-debug (format "result parser: skipped ~v" next))
+                     (write else log-pipe-out)
+                     (newline log-pipe-out)
+                     (loop (read-line) end-time summary result-info)]))]
+               [else
+                (error 'expected-test-start "expected a test start message. started with ~v" else)])))
 
 
 
-(define (test->result-summary test)
+(define (test->result test)
   (let-values ([(input-from-harness harness-output) (make-pipe)]
-               [(output-i output-o) (make-pipe)]
                [(result-i result-o) (make-pipe)])
     
     (parameterize ([current-output-port harness-output])
@@ -327,12 +354,11 @@ on all computers|#
                 (harness test)
                 (close-output-port (current-output-port)))))
     
-    (thread (λ () (copy-port input-from-harness output-o result-o)
-              (close-output-port result-o)
-              (close-output-port output-o)))
+    (thread (λ () (copy-port input-from-harness result-o)
+              (close-output-port result-o)))
                          
     (parameterize ([current-input-port result-i])
-      (values (parse-test-log) output-i))))
+      (parse-test-log))))
          
   
          

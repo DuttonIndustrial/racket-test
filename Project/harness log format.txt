@@ -1,0 +1,51 @@
+Harness Log Format
+
+
+A harness log is readable by racket.
+
+All messages that are interesting to the harness are of the form....
+
+(test-instance-id time arg1 arg2 arg3)
+	where the test-instance-id is a very large random number used to uniquely determine the tests run id
+
+The test can interact with the harness by outputting messages to the harness though standard output or standard error ports
+
+
+
+(test-instance-id time 'test test-description ...)
+	
+	the testrun with test-instance-id was started
+
+(test-instance-id time 'timeout timeout-at ...)
+
+	the test requested that it should be considered timed out at timeout-at time
+	
+	
+(test-instance-id time 'timeout-reached)
+
+	the test's timeout was reached and the run was terminated by the harness
+
+(test-instance-id time 'gc-interval gc-interval ...)
+
+	the test requested that the harness should begin collecting garbage at each gc-interval milliseconds
+	
+	
+(test-instance-id time 'gc current-memory-use major? start-time end-time)
+	
+	a garbage colleciton was performed by the harness, with the given memory statistics probived from the garbage collector
+
+(test-instance-id time 'limit-memory limit ...)
+
+	the test requests that memory be limited by the harness to limit bytes
+	
+(test-instance-id time 'memory-limit-reached)
+
+	the test reached its requested memory limit and was terminated
+
+(test-instance-id time 'abort ...)
+
+	the test requested that the test run be aborted immediatly
+	
+	
+(list-rest `,test-instance-id rest)
+

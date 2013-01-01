@@ -12,7 +12,7 @@
 
 
 (define-unit-test self-test-pass
-  (printf "here is a message from selt-test-pass~n")
+  (printf "here is a message from self-test-pass~n")
   (test-log "hey look another test!")
   (test-log "and another test!")
   (test-log "goobye!"))
@@ -63,9 +63,9 @@
 |#
 
 (define (self-test test expected)
-  (let-values ([(result output) (test->result-summary test)])
-    (unless (equal? (result-summary-result result) expected)
-      (copy-port output (current-output-port))
+  (let ([result (test->result test)])
+    (unless (equal? (result-summary result) expected)
+      (copy-port (result-log result) (current-output-port))
       (error "~a test failed" test))))
 
 (define (main)
