@@ -37,8 +37,6 @@
      #:args filenames
      filenames))
   
-  (printf "operation :~v~n" operation)
-  
   ;default to unit tests if not test types were specified
   (when (empty? list-filters)
     (set! list-filters (list unit-test?)))
@@ -59,8 +57,12 @@
                     [fail-count 0])
            (if (empty? tests)
                  (if (equal? fail-count 0)
-                     (exit 0)
-                     (exit 1))
+                     (begin 
+                       (printf "PASS!~n")
+                       (exit 0))
+                     (begin
+                       (printf "FAIL!~n")
+                       (exit 1)))
                (let* ([test (first tests)]
                       [result (test->result test)])
                  (if (equal? 'ok (result-summary result))
@@ -68,7 +70,7 @@
                      (begin
                        (printf "~a in ~a~n~n" (result-summary result) test)
                        (copy-port result-log (current-output-port))
-                       (close-output-port resuly-log)
+                       (close-output-port result-log)
                        (printf "~a in ~a~n~n" (result-summary result) test)
                        (printf "~n~n")
                        (loop (rest tests)
