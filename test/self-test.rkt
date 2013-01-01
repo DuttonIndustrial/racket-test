@@ -75,7 +75,8 @@
   (self-test self-test-fail 'abort)
   (self-test self-test-error 'error)
   (self-test self-test-timeout 'timeout-reached)
-  (self-test custodian-shutdown-test 'no-result))
+  (self-test custodian-shutdown-test 'no-result)
+  (printf "SELF TEST PASS!"))
   
 (main)
 ;(error "Self Test Failed!")
