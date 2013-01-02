@@ -3,6 +3,7 @@
 
 (require racket/list
          racket/port
+         rackunit
          (planet okcomps/racket-test))
 
 (define-stress-test stress-exceed-memory
@@ -21,11 +22,11 @@
   (sleep 0.1)
   (test-ok))
 
-(define-unit-test self-test-fail
-  (test-abort "oops this test fails!"))
+(define-unit-test self-test-abort
+  (test-abort "oops this test aborted!"))
 
 (define-unit-test self-test-error
-  (raise 'oops))
+  (error 'oops))
 
 (define-unit-test self-test-timeout
   (test-timeout 0)
@@ -39,45 +40,32 @@
 (define-unit-test custodian-shutdown-test
   (custodian-shutdown-all (current-custodian)))
 
-
-#|
-
-
+(define-unit-test rackunit-fail
+  (check-equal? #t #f))
 
 (define-unit-test kill-current-thread-test
   (kill-thread (current-thread)))
 
 
-(define-unit-test abort-test
-  (test-abort "abort occurred"))
-
-(define-unit-test exception-test
-  (error 'oops "uh oh an exception happend"))
-
-(define-unit-test absolute-timeout-test
-  (test-timeout 1000)
-  (sleep 100000))
-
-(define-unit-test ok-test
-  (test-log "yay its all ok ~a" 'ummm-kkkaaaayyy))
-|#
 
 (define (self-test test expected)
-  (let ([result (test->result test)])
+  (let ([result (test->result test #:output #f)])
     (unless (equal? (result-summary result) expected)
       (copy-port (result-log result) (current-output-port))
-      (error "~a test failed" test))))
+      (error "test failed" test))))
 
 (define (main)
+  (self-test rackunit-fail 'error)
   (self-test stress-exceed-memory 'memory-limit-reached)
   (self-test self-test-pass 'ok)
   (self-test perf-test 'ok)
-  (self-test self-test-fail 'abort)
+  (self-test self-test-abort 'abort)
   (self-test self-test-error 'error)
   (self-test self-test-timeout 'timeout-reached)
   (self-test custodian-shutdown-test 'no-result)
+  (self-test kill-current-thread-test 'no-result)
   (printf "SELF TEST PASS!"))
   
 (main)
-;(error "Self Test Failed!")
+
 

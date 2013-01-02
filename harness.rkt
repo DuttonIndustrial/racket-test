@@ -8,6 +8,7 @@
          racket/port
          racket/sandbox
          srfi/27
+         rackunit
          "test-api.rkt")
 
 (provide harness
@@ -42,7 +43,7 @@ on all computers|#
 
 (struct test (name source line thunk)
   #:property prop:procedure (λ (test)
-                              (test->result test))
+                              (test->result test #:output #t))
                                 
   #:property prop:custom-write (λ (test port mode)
                                  ((if mode
@@ -53,10 +54,14 @@ on all computers|#
 
 (struct result (test id start-time end-time summary reason log-bytes)
   #:property prop:custom-write (λ (result port mode)
-                                 ((if mode write display)
-                                  (format "Result ~x for test ~a: ~a" (result-id result) (result-test result) (result-summary result)) port)))
+                                 (define output (if mode write display))
+                                 (output (format "Result ~x for test ~a: ~a" (result-id result) (result-test result) (result-summary result)) port)
+                                 (newline port)
+                                 (unless (equal? (result-summary result) 'ok)
+                                   (output (result-reason result) port)
+                                   (newline port))))
+                                 
 
-  
 (define (result-log-port result)
   (open-input-bytes (result-log-bytes result)))
 
@@ -112,13 +117,14 @@ on all computers|#
       (let ([exp (regexp-quote (format "(~a" code))])
         (let loop ([next-line (read-line)])
           (cond [(equal? eof next-line)
-                 ;(log-debug "parser: exiting")
+                 (log-debug "parser: exiting")
                  (void)]
                 [(regexp-match? exp next-line)
-                 ;(log-debug (format "parser: matched ~v" next-line))
+                 (log-debug (format "parser: matched ~v" next-line))
                  (async-channel-put output-channel (with-input-from-string next-line read))
                  (loop (read-line))]
                 [else
+                 (log-debug (format "parser: passing ~v" next-line))
                  (async-channel-put output-channel next-line)
                  (loop (read-line))])))]
      [else
@@ -156,14 +162,15 @@ on all computers|#
           [(test-thread) (parameterize ([current-custodian test-custodian]
                                         [current-output-port output-from-test]
                                         [current-test-instance-id (make-test-instance-id)]
-                                        [uncaught-exception-handler (λ (ex)
-                                                                      (test-log 'error (format "~a" ex))
-                                                                      ((error-escape-handler)))])
+                                        [uncaught-exception-handler (λ (exn)
+                                                                      (test-log 'error (format "~a" exn))
+                                                                      ((error-escape-handler)))]
+                                        [current-check-handler raise]) ;for tests that use rackunit, we want to raise the error and capture it
                            (thread (λ ()
-                                     (write (list 'test (current-test-instance-id) test))
-                                     (newline)
-                                     (current-test-start-time (current-inexact-milliseconds))
-                                     ((test-thunk test)))))])
+                                       (write (list 'test (current-test-instance-id) test))
+                                       (newline)
+                                       (current-test-start-time (current-inexact-milliseconds))
+                                       ((test-thunk test)))))])
                          
        ;get the test instance id
        (match (async-channel-get test-output-channel)
@@ -248,15 +255,16 @@ on all computers|#
                               (custodian-limit-memory memory-limit-custodian limit)
                               (loop next-timeout gc-interval next-gc)]
                              
-                             ;any time an error message is logged we halt the test
+                             ;any time an abort message is logged we halt the test
                              [(list-rest `,test-instance-id 'abort rest)
                               (log-debug "harness: received abort")
                               (apply harness-log 'abort rest)
                               (custodian-shutdown-all memory-limit-custodian)]
                              
                              ;any unknown messages are passed through
-                             [(list-rest `,test-instance-id rest)
-                              (apply harness-log rest)
+                             [(list-rest `,test-instance-id arg rest)
+                              (log-debug "harness: recieved ~v" arg)
+                              (apply harness-log (list* arg rest))
                               (loop next-timeout gc-interval next-gc)]
                              
                              [else
@@ -347,7 +355,7 @@ on all computers|#
 
 
 
-(define (test->result test)
+(define (test->result test #:output (output #f))
   (let-values ([(input-from-harness harness-output) (make-pipe)]
                [(result-i result-o) (make-pipe)])
     
@@ -356,7 +364,10 @@ on all computers|#
                 (harness test)
                 (close-output-port (current-output-port)))))
     
-    (thread (λ () (copy-port input-from-harness result-o)
+    (thread (λ () 
+              (if output
+                  (copy-port input-from-harness result-o (current-output-port))
+                  (copy-port input-from-harness result-o))
               (close-output-port result-o)))
                          
     (parameterize ([current-input-port result-i])
