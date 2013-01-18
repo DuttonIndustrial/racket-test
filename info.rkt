@@ -1,3 +1,5 @@
 #lang setup/infotab
 (define name "racket-test")
-(define raco-commands '(("racket-test" racket-test/raco "run racket-test tests" 100)))
+
+(define racket-launcher-names (list "racket-test"))
+(define racket-launcher-libraries (list "racket-test.rkt"))
