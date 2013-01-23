@@ -3,7 +3,7 @@
 (require racket/list
          racket/file
          racket/path
-         "harness.rkt"
+         "test.rkt"
          "test-api.rkt")
 
 (provide register-test
@@ -20,15 +20,15 @@
 
 (define registered-test-types empty)
 
-
 (struct test-type (name description filter) #:transparent)
-
 
 (define (register-test-type name description filter)
   (set! registered-test-types (cons (test-type name description filter) registered-test-types)))
 
 (define (test-types)
   registered-test-types)
+
+(register-test-type 'all "All Tests" (λ (x) #t))
 
 
 #| contains the list of registered tests
@@ -41,6 +41,7 @@ that has one or more define-test like definitions in it|#
 ;returns the set of tests in the order they were registered
 (define (tests (test-filter (λ (t) #t)))
   (reverse (filter test-filter registered-tests)))
+
 
 ;registered a test within the testing system
 (define (register-test test)

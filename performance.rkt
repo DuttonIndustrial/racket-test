@@ -1,15 +1,17 @@
 #lang racket/base
 
 
-(require (for-syntax racket/base)
+(require (for-syntax racket/base
+                     syntax/parse)
          racket/list
          racket/match
          srfi/27
-         "harness.rkt"
+         "test.rkt"
          "test-api.rkt"
          "registry.rkt")
 
-(provide define-performance-test
+(provide current-iteration-id
+         define-performance-test
          make-iteration-id
          mark-iteration-start
          mark-iteration-end
@@ -29,16 +31,19 @@
 
 (register-test-type 'perf "A performance test typically measures a run-time or iteration times of a piece of code. Typically considered a success if it meets a specific run time goal." perf-test?)
 
+(define current-iteration-id (make-parameter #f))
 
 (define (make-iteration-id)
-  (random-integer (expt 2 128)))
+  (current-iteration-id (random-integer (expt 2 128)))
+  (current-iteration-id))
 
 
-(define (mark-iteration-start (id make-iteration-id))
+(define (mark-iteration-start (id (make-iteration-id)))
+  (collect-garbage)
   (test-log 'perf-start id)
   id)
 
-(define (mark-iteration-end id)
+(define (mark-iteration-end (id (current-iteration-id)))
   (test-log 'perf-end id))
 
 
@@ -58,14 +63,22 @@
 
 
 (define-syntax (define-performance-test stx)
-  (syntax-case stx ()
-    [(_ name code ...)
+  (define-splicing-syntax-class maybe-iterations-option
+    (pattern (~seq #:iterations count:exact-positive-integer))
+    (pattern (~seq) #:with count #'1))
+  
+  (syntax-parse stx
+    [(_ name its:maybe-iterations-option code ...)
      #`(begin
          (define name (perf-test 
                        'name 
                        #,(path->string (syntax-source stx) )
                        #,(syntax-line stx) 
-                       (λ () code ...)))
+                       (λ ()
+                         (do ((iterations its.count (sub1 iterations)))
+                           ((= iterations 0))
+                           ((λ () code ...)))
+                         (test-ok))))
          (register-test name))]))
 
 

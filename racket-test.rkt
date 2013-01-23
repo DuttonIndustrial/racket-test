@@ -1,9 +1,10 @@
 #lang racket/base
 
-(require racket/file
+(require racket/cmdline
+         racket/file
          racket/list
          racket/path
-         racket/cmdline
+         racket/string
          racket/port
          (planet okcomps/racket-test))
 
@@ -24,7 +25,9 @@
      #:program "raco racket-test"
      #:multi
      [("-t" "--type") type 
-                      "Test type to operate on. Defaults to unit tests."
+                     ("Test type to filter."
+                      "Defaults to unit tests."
+                      (format "One of: ~a" (string-join (map (compose symbol->string test-type-name) (test-types)) ", ")))
                       (if (equal? (string->symbol type) 'all)
                           (set! list-filters (cons (λ (t) #t) list-filters))
                           (set! list-filters (cons (test-type-filter (get-test-type (string->symbol type))) list-filters)))]
@@ -77,9 +80,8 @@
                              (add1 fail-count)))))))]
         
         [(equal? operation 'harness)
-         (printf "harnessing tests~n")
          (for-each (λ (t)
-                     (harness t))
+                     (harness (test-main t)))
                    (filter-tests list-filters))]
         [else
          (error "Don't know what to do")]))

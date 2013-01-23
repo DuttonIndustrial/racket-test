@@ -1,7 +1,8 @@
 #lang racket/base
 
 (require racket/list
-         racket/match)
+         racket/match
+         srfi/27)
 
 
 (provide test-ok      ;logs a test completed ok message
@@ -12,7 +13,23 @@
          test-gc-interval 
          current-test-time
          current-test-start-time
-         current-test-instance-id)
+         current-test-instance-id
+         make-test-instance-id)
+
+
+
+
+#| make sure that all new test instance id's are completely new
+if we did not do this. random-integer would return the same sequence
+every time we run the code|#
+(random-source-randomize! default-random-source)
+
+
+#| the intention here is to makes a sufficiently unique number 
+such that all test-instance-ids will be unique for all time 
+on all computers|#
+(define (make-test-instance-id)
+  (random-integer (expt 2 128)))
 
 
 (define current-test-instance-id (make-parameter 0))
@@ -27,12 +44,10 @@
 
 ;logs a message to the test harness
 (define (test-log . args)
-  (newline)
   (write (if (string? (first args))
              (list (current-test-instance-id) (apply format args))
              (list* (current-test-instance-id) args)))
-  (newline)
-  (flush-output))
+  (newline))
 
 (define (test-ok . args)
   (apply test-log 'ok args))
