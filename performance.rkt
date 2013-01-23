@@ -16,8 +16,6 @@
          mark-iteration-start
          mark-iteration-end
          perf-test?
-         time-iteration
-         time-iterations
          parse-iterations)
 
 
@@ -45,21 +43,6 @@
 
 (define (mark-iteration-end (id (current-iteration-id)))
   (test-log 'perf-end id))
-
-
-(define (time-iteration thunk)
-  (let ([iteration-id (make-iteration-id)])
-    (mark-iteration-start iteration-id)
-    (thunk)
-    (mark-iteration-end iteration-id)))
-
-
-(define (time-iterations count thunk)
-  (let loop ([count count])
-    (when (> count 0)
-      (time-iteration thunk)
-      (loop (sub1 count)))))
-
 
 
 (define-syntax (define-performance-test stx)

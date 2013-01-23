@@ -22,10 +22,7 @@
 (define absolute-harness-timeout (make-parameter (* 5 60 1000 )))
 
 ;the number of secods that the harness allows to the test by default
-(define default-harness-timeout (make-parameter 5000))
-
-
-
+(define default-harness-timeout (make-parameter 30000))
 
 
 ;this file contains primitive accessable to a test

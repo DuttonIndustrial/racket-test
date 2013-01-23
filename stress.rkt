@@ -1,7 +1,8 @@
 #lang racket/base
 
 
-(require (for-syntax racket/base)
+(require (for-syntax racket/base
+                     syntax/parse)
          "test-api.rkt"
          "test.rkt"
          "registry.rkt")
@@ -22,7 +23,7 @@
 
 
 (define-syntax (define-stress-test stx)
-  (syntax-case stx ()
+  (syntax-parse stx
     [(_ name code ...)
      #`(begin
          (define name (stress-test 

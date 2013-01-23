@@ -19,8 +19,7 @@
   (test-log "goobye!"))
   
 (define-performance-test perf-test
-  (sleep 0.1)
-  (test-ok))
+  (sleep 0.1))
 
 (define-unit-test self-test-abort
   (test-abort "oops this test aborted!"))
