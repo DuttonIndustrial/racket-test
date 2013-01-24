@@ -13,8 +13,8 @@
          test-gc-interval 
          current-test-time
          current-test-start-time
-         current-test-instance-id
-         make-test-instance-id)
+         current-test-run-id
+         make-test-run-id)
 
 
 
@@ -28,11 +28,11 @@ every time we run the code|#
 #| the intention here is to makes a sufficiently unique number 
 such that all test-instance-ids will be unique for all time 
 on all computers|#
-(define (make-test-instance-id)
+(define (make-test-run-id)
   (random-integer (expt 2 128)))
 
 
-(define current-test-instance-id (make-parameter 0))
+(define current-test-run-id (make-parameter 0))
 
 
 ;the number of seconds that have expired since the test began
@@ -45,8 +45,8 @@ on all computers|#
 ;logs a message to the test harness
 (define (test-log . args)
   (write (if (string? (first args))
-             (list (current-test-instance-id) (apply format args))
-             (list* (current-test-instance-id) args)))
+             (list (current-test-run-id) (apply format args))
+             (list* (current-test-run-id) args)))
   (newline))
 
 (define (test-ok . args)

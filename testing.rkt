@@ -40,9 +40,9 @@
 
 (define (test-main test)
   (λ ()
-    (current-test-instance-id (make-test-instance-id))
+    (current-test-run-id (make-test-run-id))
     (current-test-start-time (current-inexact-milliseconds))
-    (write (list 'test (current-test-instance-id) test))
+    (write (list 'test (current-test-run-id) (test-name test) (test-source test) (test-line test)))
     (newline)
     ((test-thunk test))))
   

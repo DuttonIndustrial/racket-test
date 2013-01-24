@@ -65,6 +65,9 @@
          (register-test name))]))
 
 
+#|(define (parse-perf-data-simple log)
+  (parse-iterations log)|#
+
 
 (define (parse-iterations log)
   (let loop ([iterations (make-immutable-hash empty)]

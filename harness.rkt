@@ -27,20 +27,22 @@
 ;this file contains primitive accessable to a test
 ;this is how the test interacts with its containing harness
 ;and ultimatly the outside world 
-(define-struct gc-info (major? 
-                 pre-amount 
-                 pre-admin-amount 
-                 code-amount       
-                 post-amount 
-                 post-admin-amount
-                 start-process-time 
-                 end-process-time
-                 start-time 
-                 end-time)
+(define-struct gc-info 
+  (major? 
+   pre-amount 
+   pre-admin-amount 
+   code-amount       
+   post-amount 
+   post-admin-amount
+   start-process-time 
+   end-process-time
+   start-time 
+   end-time)
   #:prefab)
 
+
 (define (harness-log . args)
-  (write (list* (current-test-instance-id)
+  (write (list* (current-test-run-id)
                 (current-inexact-milliseconds)
                 (if (string? (first args))
                     (list (apply format args))
@@ -74,7 +76,7 @@
                  (async-channel-put output-channel next-line)
                  (loop (read-line))])))]
      [else
-      (error 'missing-test-instance-id "'(test test-instance-id-number) was not presented as the first item in the output string")]))
+      (error 'missing-test-run-id "'(test test-run-id-number) was not presented as the first item in the output string")]))
 
  
 ;takes a test object
@@ -116,8 +118,8 @@
                          
        ;get the test instance id
        (match (async-channel-get test-output-channel)
-         [(list-rest 'test test-instance-id rest)
-          (current-test-instance-id test-instance-id)
+         [(list-rest 'test test-run-id rest)
+          (current-test-run-id test-run-id)
           (apply harness-log 'start rest)
           
           (let loop ([next-timeout (+ (current-inexact-milliseconds) (default-harness-timeout))]
@@ -181,30 +183,30 @@
                              ;when we receive a timeout message from our test thread
                              ;we set the timeout limit to the given value
                              ;this allows a test to "keep-alive" if it wants to
-                             [(list-rest `,test-instance-id 'timeout timeout-at rest)
+                             [(list-rest `,test-run-id 'timeout timeout-at rest)
                               (log-debug (format "harness: setting timeout to ~v" timeout-at))
                               (apply harness-log 'timeout timeout-at rest)
                               (loop timeout-at gc-interval next-gc)]
                              
-                             [(list-rest `,test-instance-id 'gc-interval gc-interval rest)
+                             [(list-rest `,test-run-id 'gc-interval gc-interval rest)
                               (log-debug (format "harness: setting gc-interval to ~v" gc-interval))
                               (apply harness-log 'gc-interval gc-interval rest)
                               (loop next-timeout gc-interval (current-inexact-milliseconds))]
                              
-                             [(list-rest `,test-instance-id 'limit-memory limit rest)
+                             [(list-rest `,test-run-id 'limit-memory limit rest)
                               (log-debug (format "harness: limiting memory to ~v" limit))
                               (apply harness-log 'limit-memory limit rest)
                               (custodian-limit-memory memory-limit-custodian limit)
                               (loop next-timeout gc-interval next-gc)]
                              
                              ;any time an abort message is logged we halt the test
-                             [(list-rest `,test-instance-id 'abort rest)
+                             [(list-rest `,test-run-id 'abort rest)
                               (log-debug "harness: received abort")
                               (apply harness-log 'abort rest)
                               (custodian-shutdown-all memory-limit-custodian)]
                              
                              ;any unknown messages are passed through
-                             [(list-rest `,test-instance-id arg rest)
+                             [(list-rest `,test-run-id arg rest)
                               (log-debug "harness: recieved ~v" arg)
                               (apply harness-log (list* arg rest))
                               (loop next-timeout gc-interval next-gc)]
@@ -214,7 +216,7 @@
                               (loop next-timeout gc-interval next-gc)])))))]
          
          [else
-          (error 'missing-test-instance-id "'(test test-instance-id-number) was not presented as the first output from the test. Received ~v" else)])
+          (error 'missing-test-run-id "'(test test-run-id-number) was not presented as the first output from the test. Received ~v" else)])
        
        (close-output-port output-from-test)
        
@@ -223,7 +225,7 @@
        ;complete reading any available input from the test
        (let loop ([next (async-channel-try-get test-output-channel)])
          (match next
-           [(list-rest `,test-instance-id rest)
+           [(list-rest `,test-run-id rest)
             (apply harness-log rest)
             (loop (async-channel-try-get test-output-channel))]
            [(? string?)
