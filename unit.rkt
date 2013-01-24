@@ -4,7 +4,7 @@
                      syntax/parse)
          "registry.rkt"
          "test-api.rkt"
-         "test.rkt")
+         "testing.rkt")
 
 (provide define-unit-test
          unit-test?)

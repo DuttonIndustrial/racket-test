@@ -6,7 +6,7 @@
          racket/list
          racket/match
          srfi/27
-         "test.rkt"
+         "testing.rkt"
          "test-api.rkt"
          "registry.rkt")
 

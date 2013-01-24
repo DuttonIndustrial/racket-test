@@ -1,19 +1,19 @@
 #lang racket/base
 
-(require "test.rkt"
-         "test-api.rkt"
-         "harness.rkt"
-         "registry.rkt"
-         "unit.rkt"
+(require "harness.rkt"
          "performance.rkt"
-         "stress.rkt")
+         "registry.rkt"
+         "stress.rkt"
+         "test-api.rkt"
+         "testing.rkt"
+         "unit.rkt")
 
 
 (provide (all-from-out "harness.rkt")
-         (all-from-out "test.rkt")
-         (all-from-out "test-api.rkt")
-         (all-from-out "registry.rkt")
-         (all-from-out "unit.rkt")
          (all-from-out "performance.rkt")
-         (all-from-out "stress.rkt"))
+         (all-from-out "registry.rkt")
+         (all-from-out "stress.rkt")
+         (all-from-out "test-api.rkt")
+         (all-from-out "testing.rkt")
+         (all-from-out "unit.rkt"))
 

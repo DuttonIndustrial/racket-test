@@ -1,8 +1,7 @@
 #lang racket/base
 
-(require (for-syntax racket/base)
+(require 
          racket/async-channel
-         racket/function
          racket/list
          racket/match
          racket/port
@@ -84,7 +83,7 @@
   (call-with-custodian-shutdown
    (λ ()
      (let*-values 
-         ([(gc-log-listener) (make-log-receiver (current-logger) 'debug)]
+         ([(gc-log-listener) (make-log-receiver (current-logger) 'none 'GC 'debug)]
           [(input-from-test output-from-test) (make-pipe)] ;captures output from the testing thread
           [(test-output-channel) (make-async-channel)] ;parse all captured output from the testing thread
           [(absolute-timeout-evt) (alarm-evt (+ (current-inexact-milliseconds) (absolute-harness-timeout)))]

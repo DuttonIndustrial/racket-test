@@ -3,7 +3,7 @@
 (require racket/list
          racket/file
          racket/path
-         "test.rkt"
+         "testing.rkt"
          "test-api.rkt")
 
 (provide register-test

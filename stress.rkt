@@ -4,7 +4,7 @@
 (require (for-syntax racket/base
                      syntax/parse)
          "test-api.rkt"
-         "test.rkt"
+         "testing.rkt"
          "registry.rkt")
 
 
