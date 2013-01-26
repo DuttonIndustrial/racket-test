@@ -38,11 +38,11 @@
 
 (define (mark-iteration-start (id (make-iteration-id)))
   (collect-garbage)
-  (test-log 'perf-start id)
+  (test-log 'perf-start id (current-inexact-milliseconds) (current-process-milliseconds))
   id)
 
 (define (mark-iteration-end (id (current-iteration-id)))
-  (test-log 'perf-end id))
+  (test-log 'perf-end id (current-inexact-milliseconds) (current-process-milliseconds)))
 
 
 (define-syntax (define-performance-test stx)

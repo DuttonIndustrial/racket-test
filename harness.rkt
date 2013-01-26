@@ -41,42 +41,34 @@
   #:prefab)
 
 
-(define (harness-log . args)
-  (write (list* (current-test-run-id)
-                (current-inexact-milliseconds)
-                (if (string? (first args))
-                    (list (apply format args))
-                    args)))
+(define (harness-log msg)
+  (write msg)
   (newline))
 
 
- ;reads current input port until eof found
- ;any special test commands are written to the current output port as special values
- ;all others are written back to the output stream with no modifications
- ;the parse depends upon the first output from the stream to be a special
- ;code that delineats harness commands
- (define (parse-harness-commands output-channel)
-   (define x (read-line))
-   ;(log-debug (format "parser: processing ~v" x))
-   (match (with-input-from-string x read)
-     [(and (list-rest 'test code rest) v)
-      ;(log-debug (format "parser: code is ~v" code))
-      (async-channel-put output-channel v)
-      (let ([exp (regexp-quote (format "(~a" code))])
-        (let loop ([next-line (read-line)])
-          (cond [(equal? eof next-line)
-                 (log-debug "parser: exiting")
-                 (void)]
-                [(regexp-match? exp next-line)
-                 (log-debug (format "parser: matched ~v" next-line))
-                 (async-channel-put output-channel (with-input-from-string next-line read))
-                 (loop (read-line))]
-                [else
-                 (log-debug (format "parser: passing ~v" next-line))
-                 (async-channel-put output-channel next-line)
-                 (loop (read-line))])))]
-     [else
-      (error 'missing-test-run-id "'(test test-run-id-number) was not presented as the first item in the output string")]))
+;parses standard output from a test
+;the very first message will delineate the "code" that is picked out as the start of a read operation
+;it converts the output into messages, on per line which are lists
+;any text output by the test that isn't a test control message (list test-run-id ... etc)
+;becomes (list 'std-in string)
+(define (std-out-parser output-channel (in (current-input-port)) #:max-std-in-width (max-width 1024))
+  (parameterize ([current-input-port in])
+    (match (read)
+      [(and (list-rest 'test code else) msg)
+       (read-line)
+       (async-channel-put output-channel msg)
+       (define r (pregexp (format "^(?:(?!~a).){1,~a}" (regexp-quote (format "(~a" code)) max-width)))
+       
+       (let loop ()
+         (let ([m (regexp-match-peek-positions r (current-input-port))])
+           (if m
+               (begin
+                 (async-channel-put output-channel (list 'std-out (bytes->string/utf-8 (read-bytes (cdr (first m))))))
+                 (loop))
+               (unless (eof-object? (peek-byte))
+                 (async-channel-put output-channel (read))
+                 (read-line)
+                 (loop)))))])))
 
  
 ;takes a test object
@@ -85,7 +77,7 @@
   (call-with-custodian-shutdown
    (λ ()
      (let*-values 
-         ([(gc-log-listener) (make-log-receiver (current-logger) 'none 'GC 'debug)]
+         ([(gc-log-listener) (make-log-receiver (current-logger) 'debug)]
           [(input-from-test output-from-test) (make-pipe)] ;captures output from the testing thread
           [(test-output-channel) (make-async-channel)] ;parse all captured output from the testing thread
           [(absolute-timeout-evt) (alarm-evt (+ (current-inexact-milliseconds) (absolute-harness-timeout)))]
@@ -102,7 +94,7 @@
           ;the harness command parser filters out commands from the tests output 
           ;that it understands, and allows it to cooperate with the test
           [(harness-commands-parser) (parameterize ([current-input-port input-from-test])
-                                       (thread (λ () (parse-harness-commands test-output-channel))))]
+                                       (thread (λ () (std-out-parser test-output-channel))))]
           
           ;finally we launch the thread as part of test-custodian
           ;any output for the thread is captured and added to our test log
@@ -118,9 +110,9 @@
                          
        ;get the test instance id
        (match (async-channel-get test-output-channel)
-         [(list-rest 'test test-run-id rest)
+         [(and (list-rest 'test test-run-id rest) msg)
           (current-test-run-id test-run-id)
-          (apply harness-log 'start rest)
+          (harness-log msg)
           
           (let loop ([next-timeout (+ (current-inexact-milliseconds) (default-harness-timeout))]
                      [gc-interval #f]
@@ -138,7 +130,7 @@
                            ;if the memory-limit-custodian-box was shutdown, it means that limit memory was reached
                            ;and we report it
                            (when (sync/timeout 0 memory-limit-custodian-box)
-                             (harness-log 'memory-limit-reached))
+                             (harness-log (list (current-test-run-id) 'memory-limit-reached)))
                                                       
                            ;shutdown the test and cleanup any resources it may have left behind
                            (custodian-shutdown-all memory-limit-custodian)))
@@ -149,7 +141,7 @@
                            (if (equal? v absolute-timeout-evt)
                                (log-debug "harness: absolute timeout reached")
                                (log-debug "harness: timeout reached"))
-                           (harness-log 'timeout-reached)
+                           (harness-log (list (current-test-run-id) 'timeout-reached))
                            (custodian-shutdown-all memory-limit-custodian)))
              
              ;when a gc interval timeout occurs, we force garbage collection
@@ -168,7 +160,7 @@
                                  ;if a major gc occured, we log it and can reset on our gc-interval so we don't force again
                                  (if (match gc-data
                                        [(vector level str (gc-info major? pre-amount pre-admin-amount code-amount post-amount post-admin-amount start-process-time end-process-time start-time end-time))
-                                        (harness-log 'gc (current-memory-use memory-limit-custodian) major? start-time end-time)
+                                        (harness-log (list (current-test-run-id) 'gc (current-memory-use memory-limit-custodian) major? pre-amount pre-admin-amount code-amount post-amount post-admin-amount start-process-time end-process-time start-time end-time))
                                         major?]
                                        [else
                                         next-gc])
@@ -179,40 +171,36 @@
              ;if we received any information from the test itself
              (handle-evt test-output-channel
                          (λ (next-msg)
+                           (harness-log next-msg)
+                           
                            (match next-msg
                              ;when we receive a timeout message from our test thread
                              ;we set the timeout limit to the given value
                              ;this allows a test to "keep-alive" if it wants to
-                             [(list-rest `,test-run-id 'timeout timeout-at rest)
-                              (log-debug (format "harness: setting timeout to ~v" timeout-at))
-                              (apply harness-log 'timeout timeout-at rest)
+                             [(list-rest `,test-run-id 'set-timeout timeout-at rest)
+                              (log-debug (format "harness: setting timeout to ~v" timeout-at))   
                               (loop timeout-at gc-interval next-gc)]
                              
                              [(list-rest `,test-run-id 'gc-interval gc-interval rest)
                               (log-debug (format "harness: setting gc-interval to ~v" gc-interval))
-                              (apply harness-log 'gc-interval gc-interval rest)
                               (loop next-timeout gc-interval (current-inexact-milliseconds))]
                              
                              [(list-rest `,test-run-id 'limit-memory limit rest)
                               (log-debug (format "harness: limiting memory to ~v" limit))
-                              (apply harness-log 'limit-memory limit rest)
                               (custodian-limit-memory memory-limit-custodian limit)
                               (loop next-timeout gc-interval next-gc)]
                              
                              ;any time an abort message is logged we halt the test
                              [(list-rest `,test-run-id 'abort rest)
                               (log-debug "harness: received abort")
-                              (apply harness-log 'abort rest)
                               (custodian-shutdown-all memory-limit-custodian)]
                              
                              ;any unknown messages are passed through
                              [(list-rest `,test-run-id arg rest)
                               (log-debug "harness: recieved ~v" arg)
-                              (apply harness-log (list* arg rest))
                               (loop next-timeout gc-interval next-gc)]
                              
                              [else
-                              (harness-log else)
                               (loop next-timeout gc-interval next-gc)])))))]
          
          [else
@@ -224,16 +212,9 @@
        
        ;complete reading any available input from the test
        (let loop ([next (async-channel-try-get test-output-channel)])
-         (match next
-           [(list-rest `,test-run-id rest)
-            (apply harness-log rest)
-            (loop (async-channel-try-get test-output-channel))]
-           [(? string?)
-            (write-string next)
-            (newline)
-            (loop (async-channel-try-get test-output-channel))]
-           [else
-            (void)]))
+         (when next
+           (harness-log next)
+           (loop (async-channel-try-get test-output-channel))))
        
        ;signal when the test exited
-       (harness-log 'end)))))
+       (harness-log (list (current-test-run-id) 'end (current-inexact-milliseconds)))))))

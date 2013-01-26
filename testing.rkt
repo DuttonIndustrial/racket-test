@@ -42,7 +42,7 @@
   (λ ()
     (current-test-run-id (make-test-run-id))
     (current-test-start-time (current-inexact-milliseconds))
-    (write (list 'test (current-test-run-id) (test-name test) (test-source test) (test-line test)))
+    (write (list 'test (current-test-run-id) (current-inexact-milliseconds) (test-name test) (test-source test) (test-line test)))
     (newline)
     ((test-thunk test))))
   
@@ -75,12 +75,13 @@
   (open-input-bytes (result-log-bytes result)))
 
 
-
+(define (parse-line)
+  (with-input-from-string (read-line) read))
 
 (define (parse-test-log (input (current-input-port)))
   (let-values ([(log-pipe-in log-pipe-out) (make-pipe)])
-             (match (with-input-from-string (read-line) read)
-               [(and (list-rest test-id start-time 'start test-info) start-msg)
+             (match (parse-line)
+               [(and (list-rest 'test test-id start-time test-info) start-msg)
                 (log-debug (format "result parser: test-id is ~v - test-info is ~v" test-id test-info))
                 (write start-msg log-pipe-out)
                 (newline log-pipe-out)
@@ -93,7 +94,7 @@
                              (error 'unexpected-oef "reached eof before test log end marker")
                              (with-input-from-string next read))
                     
-                    [(and (list-rest `,test-id end-time 'end rest) msg)
+                    [(and (list-rest `,test-id 'end end-time rest) msg)
                      (write msg log-pipe-out)
                      (newline log-pipe-out)
                      (close-output-port log-pipe-out)
@@ -101,27 +102,27 @@
                        (close-input-port log-pipe-in)
                        (result test-info test-id start-time end-time summary result-info log-bytes))]
                     
-                    [(and (list-rest `,test-id time 'abort rest) msg)
+                    [(and (list-rest `,test-id 'abort rest) msg)
                      (write msg log-pipe-out)
                      (newline log-pipe-out)
                      (loop (read-line) end-time (if (equal? summary 'no-result) 'abort summary) rest)]
                     
-                    [(and (list-rest `,test-id time 'error rest) msg)
+                    [(and (list-rest `,test-id 'error rest) msg)
                      (write msg log-pipe-out)
                      (newline log-pipe-out)
                      (loop (read-line) end-time (if (equal? summary 'no-result) 'error summary) rest )]
                     
-                    [(and (list-rest `,test-id time 'timeout-reached rest) msg)
+                    [(and (list-rest `,test-id 'timeout-reached rest) msg)
                      (write msg log-pipe-out)
                      (newline log-pipe-out)
                      (loop (read-line) end-time (if (equal? summary 'no-result) 'timeout-reached summary) rest)]
                     
-                    [(and (list-rest `,test-id time 'memory-limit-reached rest) msg)
+                    [(and (list-rest `,test-id 'memory-limit-reached rest) msg)
                      (write msg log-pipe-out)
                      (newline log-pipe-out)
                      (loop (read-line) end-time (if (equal? summary 'no-result) 'memory-limit-reached summary) rest)]
                     
-                    [(and (list-rest `,test-id time 'ok rest) msg)
+                    [(and (list-rest `,test-id 'ok rest) msg)
                      (write msg log-pipe-out)
                      (newline log-pipe-out)
                      (loop (read-line) end-time (if (equal? summary 'no-result) 'ok summary) rest)]

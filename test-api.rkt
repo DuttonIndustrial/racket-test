@@ -64,7 +64,7 @@ on all computers|#
 
 ;tells the harness to timeout when timeout-at >= (current-test-time)
 (define (test-timeout (timeout #f) #:at (timeout-at #f))
-  (test-log 'timeout (if timeout
+  (test-log 'set-timeout (if timeout
                          (+ (current-inexact-milliseconds) timeout)
                          timeout-at)))
 
